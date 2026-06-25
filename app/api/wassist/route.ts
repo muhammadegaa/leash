@@ -56,6 +56,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, type, verified });
   }
 
+  // Wassist fires BOTH message.received and subscription.message.received for one
+  // physical message. Process the canonical one; ignore the subscription duplicate.
+  if (type === "subscription.message.received") {
+    return NextResponse.json({ ok: true, skipped: "duplicate of message.received", type });
+  }
+
   // Dig the text + sender out of every shape Wassist might send (message.received,
   // subscription.message.received, nested data/entry wrappers).
   const b = body as Record<string, unknown>;
