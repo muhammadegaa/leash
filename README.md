@@ -1,4 +1,4 @@
-# Handoff
+# Leash
 
 **Governance and the off switch for autonomous agents.** Full-autonomy speed with a
 layer that makes it trustable: every action logged, low-confidence work escalated to
@@ -6,7 +6,7 @@ a human, malicious instructions caught in code, and a system-level kill switch.
 
 The demo business is **DrainFlow**, an autonomous plumbing-lead agency built from
 three shallow agents. The actual product is the layer underneath: any agent can emit
-to Handoff and inherit the same oversight.
+to Leash and inherit the same oversight.
 
 ## The one architectural decision
 Every agent action is one append-only row in an event store:
@@ -56,7 +56,7 @@ Run `supabase/schema.sql` in the SQL editor, then set the three `SUPABASE_*` /
 write to.
 
 ## Governance as a service
-Any external agent can ask Handoff for permission before acting:
+Any external agent can ask Leash for permission before acting:
 
 ```bash
 curl -X POST $HANDOFF_URL/api/ingest -H 'Content-Type: application/json' \

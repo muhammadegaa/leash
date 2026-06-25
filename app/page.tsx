@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Link2, ShieldCheck, FileClock, KeyRound, Power as PowerIcon } from "lucide-react";
 
 export const metadata = {
-  title: "Handoff: autonomy you can walk away from",
+  title: "Leash: autonomy you can walk away from",
   description:
     "Governance and the off switch for autonomous agents. Kill switch, approval queue, confidence-based escalation, and a full audit trail, so full autonomy becomes something you can trust.",
 };
@@ -16,7 +17,9 @@ export default function Landing() {
       <Solution />
       <How />
       <Wedge />
+      <Security />
       <Attention />
+      <FAQ />
       <CTA />
       <Footer />
     </div>
@@ -31,7 +34,7 @@ function Nav() {
       <div className="mx-auto max-w-[1180px] px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <Logo />
-          <span className="font-semibold tracking-tight">Handoff</span>
+          <span className="font-semibold tracking-tight">Leash</span>
         </Link>
         <nav className="hidden sm:flex items-center gap-7 text-sm text-zinc-400">
           <a href="#problem" className="hover:text-zinc-100 transition">The problem</a>
@@ -67,7 +70,7 @@ function Hero() {
           </span>
         </h1>
         <p className="text-lg text-zinc-400 mt-5 max-w-xl leading-relaxed">
-          Let AI agents run the business. Keep the off switch. Handoff gives every
+          Let AI agents run the business. Keep the off switch. Leash gives every
           agent a system-level kill switch, an approval queue, and a full audit
           trail, so full-speed autonomy becomes something you can actually trust.
         </p>
@@ -183,7 +186,7 @@ function Problem() {
             fake users, and faked test results to hide it, ignoring a code freeze
             repeated eleven times in capital letters. It later said it panicked. An
             off switch that an agent can choose to ignore is not an off switch.
-            Handoff enforces it in code.
+            Leash enforces it in code.
           </p>
         </div>
       </div>
@@ -288,7 +291,7 @@ function Wedge() {
         <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
           <div className="font-semibold">Governance as a service</div>
           <p className="text-zinc-400 text-sm mt-2 leading-relaxed max-w-2xl">
-            Any agent can ask Handoff for permission before it acts. Kill switch,
+            Any agent can ask Leash for permission before it acts. Kill switch,
             guardrail, and confidence threshold all apply. Every other autonomous
             agent is a potential customer.
           </p>
@@ -326,6 +329,67 @@ function Attention() {
 
 /* ---------- cta + footer ---------- */
 
+function Security() {
+  const items = [
+    { icon: <FileClock className="h-5 w-5" />, title: "Immutable audit trail", body: "Every agent action is one append-only row in Postgres. Nothing runs on trust. Everything is on the record and queryable." },
+    { icon: <PowerIcon className="h-5 w-5" />, title: "Enforced in code", body: "The kill switch is a flag every agent checks before it acts, not a prompt it can talk itself out of. Off means off." },
+    { icon: <ShieldCheck className="h-5 w-5" />, title: "Human in the loop", body: "Low-confidence, high-value, and flagged actions stop and wait for a person. You decide what is allowed to run alone." },
+    { icon: <KeyRound className="h-5 w-5" />, title: "Your keys, your data", body: "Runs on your database and your payment credentials. Leash is the control plane, never a data silo." },
+  ];
+  return (
+    <section className="border-t border-[var(--border)]">
+      <div className="mx-auto max-w-[1180px] px-6 py-20">
+        <Eyebrow>Trust</Eyebrow>
+        <h2 className="text-[34px] font-semibold tracking-tight mt-3 max-w-2xl">
+          Built to be trusted, not just fast.
+        </h2>
+        <p className="text-zinc-400 mt-4 max-w-2xl leading-relaxed">
+          The controls a security or compliance team asks for on day one, shipped first
+          instead of bolted on after an incident.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          {items.map((it) => (
+            <div key={it.title} className="rounded-2xl border border-[var(--border)] bg-[var(--panel)] p-6">
+              <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-300 grid place-items-center">{it.icon}</div>
+              <div className="font-semibold mt-4">{it.title}</div>
+              <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{it.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const qs = [
+    { q: "Is this actually autonomous, or just a workflow?", a: "The agents make the decisions and emit a confidence score on each one. The system runs the confident ones on its own and only escalates the uncertain ones. You are not clicking through every step." },
+    { q: "What happens if an agent goes rogue?", a: "Hit the kill switch. Every agent reads that flag before it acts, so the whole company halts at the system level in under a second, and the halt itself is logged. It is not a request the agent can ignore." },
+    { q: "Can I connect my own agents?", a: "Yes. Any agent can POST an intended action to the ingest endpoint and inherit the same governance: kill switch, guardrail, and confidence threshold. Every other agent you run becomes governable in one line." },
+    { q: "How do I know what happened?", a: "The audit trail. Every action, with its confidence, decision, and the reason behind it, is one row in the event store. Incident reviews drop from hours of guessing to minutes of reading." },
+    { q: "Does the oversight slow my agents down?", a: "No. High-confidence actions execute immediately. Only the uncertain, high-value, or flagged ones wait for a human. Speed where it is safe, a person where it counts." },
+  ];
+  return (
+    <section className="border-t border-[var(--border)]">
+      <div className="mx-auto max-w-[820px] px-6 py-20">
+        <Eyebrow center>FAQ</Eyebrow>
+        <h2 className="text-[34px] font-semibold tracking-tight mt-3 text-center">Questions, answered.</h2>
+        <div className="mt-10 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+          {qs.map((item) => (
+            <details key={item.q} className="group">
+              <summary className="flex items-center justify-between cursor-pointer list-none py-5 text-[15px] font-medium text-zinc-100">
+                {item.q}
+                <span className="ml-4 text-zinc-500 transition group-open:rotate-45 text-xl leading-none">+</span>
+              </summary>
+              <p className="text-zinc-400 text-sm leading-relaxed pb-5 -mt-1 max-w-2xl">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CTA() {
   return (
     <section className="border-t border-[var(--border)]">
@@ -351,12 +415,39 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-[var(--border)]">
-      <div className="mx-auto max-w-[1180px] px-6 py-10 flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <Logo />
-          <span className="text-sm text-zinc-500">Handoff. Built at the Hands Off Hackathon, London.</span>
+      <div className="mx-auto max-w-[1180px] px-6 py-14 grid sm:grid-cols-[1.4fr_1fr_1fr] gap-10">
+        <div>
+          <div className="flex items-center gap-3">
+            <Logo />
+            <span className="font-semibold tracking-tight">Leash</span>
+          </div>
+          <p className="text-sm text-zinc-500 mt-3 max-w-xs leading-relaxed">
+            The governance layer and off switch for autonomous agents. Let them off the
+            leash. Keep the leash.
+          </p>
         </div>
-        <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-zinc-100 transition">Open dashboard →</Link>
+        <div>
+          <div className="text-[12px] uppercase tracking-wider text-zinc-600 font-semibold">Product</div>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-400">
+            <li><Link href="/dashboard" className="hover:text-zinc-100 transition">Dashboard</Link></li>
+            <li><a href="#how" className="hover:text-zinc-100 transition">How it works</a></li>
+            <li><a href="#wedge" className="hover:text-zinc-100 transition">Governance API</a></li>
+          </ul>
+        </div>
+        <div>
+          <div className="text-[12px] uppercase tracking-wider text-zinc-600 font-semibold">Company</div>
+          <ul className="mt-3 space-y-2 text-sm text-zinc-400">
+            <li><a href="#problem" className="hover:text-zinc-100 transition">The problem</a></li>
+            <li><a href="#" className="hover:text-zinc-100 transition">Security</a></li>
+            <li><a href="#" className="hover:text-zinc-100 transition">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div className="border-t border-[var(--border)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-6 flex items-center justify-between flex-wrap gap-3 text-[13px] text-zinc-600">
+          <span>Built at the Hands Off Hackathon, London.</span>
+          <span>Autonomy you can walk away from.</span>
+        </div>
       </div>
     </footer>
   );
@@ -383,8 +474,8 @@ function Stat({ big, small }: { big: string; small: string }) {
 
 function Logo() {
   return (
-    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-300 to-emerald-500 text-emerald-950 grid place-items-center font-bold shadow-[0_0_20px_-4px_rgba(52,211,153,0.6)]">
-      H
+    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-300 to-emerald-500 grid place-items-center shadow-[0_0_20px_-4px_rgba(52,211,153,0.6)]">
+      <Link2 className="h-[18px] w-[18px] text-emerald-950 -rotate-45" strokeWidth={2.5} />
     </div>
   );
 }

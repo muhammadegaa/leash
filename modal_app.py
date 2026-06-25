@@ -1,8 +1,8 @@
 """
-Handoff unattended runner (Checkpoint 5).
+Leash unattended runner (Checkpoint 5).
 
 Runs on Modal on a fixed schedule with no human present. Every cycle it asks the
-deployed Handoff app to take one inbound lead through intake, qualify, invoice.
+deployed Leash app to take one inbound lead through intake, qualify, invoice.
 The app enforces the kill switch, so if a human has paused the system this loop
 produces 'halted' events instead of acting. That is the proof it ran on its own
 while no one was touching it, and that the off switch holds even unattended.

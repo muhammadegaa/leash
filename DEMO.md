@@ -1,9 +1,9 @@
-# Handoff — 2 minute demo script
+# Leash — 2 minute demo script
 
 Product line: **"Autonomy you can actually walk away from, and the off switch is why."**
 
 Underneath is DrainFlow, an autonomous plumbing lead agency. But the product is
-**Handoff: the governance layer and off switch that any agent can plug into.**
+**Leash: the governance layer and off switch that any agent can plug into.**
 
 ## Before you hit record
 1. `npm run dev`, open `http://localhost:3000`.
@@ -41,13 +41,13 @@ Hit **Kill switch**. The banner drops, every agent halts. Try to send a lead, wa
 it refuse. "System level, not advisory. And here is the part that wins the room:
 this is not just our agency. Any agent in this building can POST to our ingest and
 get the same governance." (Show the external bot row: another team's agent tried to
-delete a database and Handoff blocked it.)
+delete a database and Leash blocked it.)
 
 **1:45 Close on the brief.**
 Point at the counter. "47 handled autonomously, 3 needed you. Agents do more, you do
 less, and you can walk away because the off switch is real. One funded competitor's
 whole pitch is 'no approval gates.' The Replit agent had no approval gates. We built
-the layer they refuse to. That is Handoff."
+the layer they refuse to. That is Leash."
 
 ## The six judging criteria, mapped
 - Technical execution: event-sourced architecture, realtime dashboard, real PayPal.

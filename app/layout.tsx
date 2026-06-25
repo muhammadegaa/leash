@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Handoff: autonomy you can walk away from",
+  title: "Leash: autonomy you can walk away from",
   description:
     "Governance and the off switch for autonomous agents. Every action logged, low-confidence work escalated, a system-level kill switch you control.",
 };

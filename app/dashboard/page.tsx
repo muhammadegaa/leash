@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentEvent, Control, Stats } from "@/lib/types";
 
@@ -150,7 +151,7 @@ export default function Dashboard() {
           <Link href="/" className="flex items-center gap-3">
             <Logo />
             <div className="leading-tight">
-              <div className="font-semibold tracking-tight">Handoff</div>
+              <div className="font-semibold tracking-tight">Leash</div>
               <div className="text-[11px] text-zinc-500">Governance for autonomous agents</div>
             </div>
           </Link>
@@ -259,8 +260,8 @@ export default function Dashboard() {
 
 function Logo() {
   return (
-    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-300 to-emerald-500 text-emerald-950 grid place-items-center font-bold shadow-[0_0_20px_-4px_rgba(52,211,153,0.6)]">
-      H
+    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-300 to-emerald-500 grid place-items-center shadow-[0_0_20px_-4px_rgba(52,211,153,0.6)]">
+      <Link2 className="h-[18px] w-[18px] text-emerald-950 -rotate-45" strokeWidth={2.5} />
     </div>
   );
 }

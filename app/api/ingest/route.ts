@@ -5,8 +5,8 @@ import { CONFIDENCE_THRESHOLD } from "@/lib/orchestrator";
 
 export const dynamic = "force-dynamic";
 
-// Handoff as a primitive ANY agent can adopt in one line. An external agent
-// reports an intended action + its confidence and asks "may I act?". Handoff
+// Leash as a primitive ANY agent can adopt in one line. An external agent
+// reports an intended action + its confidence and asks "may I act?". Leash
 // applies the same governance — kill switch, guardrail, confidence threshold —
 // and returns allow:true|false. This is the oversight layer as a service.
 //
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   // 1. Kill switch — system level.
   if ((await getControl()).paused) {
     await emitEvent({ lead_id: null, agent, action, input, confidence, decision: "blocked", status: "killed",
-      reason: "Global kill switch is on, so Handoff denied the action." });
+      reason: "Global kill switch is on, so Leash denied the action." });
     return NextResponse.json({ allow: false, status: "killed", decision: "blocked" });
   }
 
