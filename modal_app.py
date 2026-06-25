@@ -40,9 +40,10 @@ def _post(path: str, body: dict) -> dict:
 
 @app.function(schedule=modal.Period(minutes=3), image=image)
 def tick():
-    """One unattended cycle: inject a lead, let the agents decide."""
-    res = _post("/api/simulate", {"count": 1})
-    print(f"[handoff] unattended tick -> {res}")
+    """One unattended operations sweep: enforce the review SLA on the approval
+    queue and write a health audit. Real work on real state, no human present."""
+    res = _post("/api/sweep", {})
+    print(f"[leash] unattended sweep -> {res}")
     return res
 
 
