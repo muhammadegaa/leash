@@ -196,13 +196,13 @@ export default function Dashboard() {
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-5">
               <span className="text-[11px] uppercase tracking-wider text-zinc-600 mr-1">Active policy</span>
-              <PolicyChip>Auto above {config?.threshold ?? 70}% confidence</PolicyChip>
-              <PolicyChip>Over £{config?.cap ?? 250} needs you</PolicyChip>
+              <PolicyChip>Auto above {feed ? Math.round(feed.control.threshold * 100) : config?.threshold ?? 70}% confidence</PolicyChip>
+              <PolicyChip>Over £{feed?.control.cap ?? config?.cap ?? 250} needs you</PolicyChip>
               <PolicyChip>Threats blocked</PolicyChip>
             </div>
             <div className="flex items-center gap-2 mt-3 text-[12px] text-zinc-500">
               <span>Governing:</span>
-              <span className="text-zinc-200 font-medium">{config?.business ?? "your agents"}</span>
+              <span className="text-zinc-200 font-medium">{feed?.control.business ?? config?.business ?? "your agents"}</span>
               <Dotsep />
               <button onClick={() => { try { localStorage.removeItem("leash.config"); } catch {} setConfig(null); }} className="text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2">
                 Reconfigure
@@ -574,7 +574,12 @@ function Onboarding({ onDeploy }: { onDeploy: (c: Config) => void }) {
   const [business, setBusiness] = useState("");
   const [threshold, setThreshold] = useState(70);
   const [cap, setCap] = useState(250);
-  const deploy = (b?: string) => onDeploy({ business: (b ?? business).trim() || "Inbound leads", threshold, cap });
+  const deploy = (b?: string) => {
+    const c = { business: (b ?? business).trim() || "Inbound leads", threshold, cap };
+    // Persist the real governance policy the agents enforce (not just local UI state).
+    fetch("/api/policy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(c) }).catch(() => {});
+    onDeploy(c);
+  };
 
   return (
     <div className="min-h-screen grid place-items-center px-6 py-12">

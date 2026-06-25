@@ -1,0 +1,107 @@
+{
+  "typography": [
+    {
+      "role": "display",
+      "fontFamily": "Geist",
+      "fontSize": "52px",
+      "fontWeight": "600",
+      "lineHeight": "54.08px",
+      "letterSpacing": "-1.3px",
+      "color": "#EDEDF0",
+      "sampleText": "Autonomy you canwalk away from."
+    },
+    {
+      "role": "heading",
+      "fontFamily": "Geist",
+      "fontSize": "34px",
+      "fontWeight": "600",
+      "lineHeight": "51px",
+      "letterSpacing": "-0.85px",
+      "color": "#EDEDF0",
+      "sampleText": "Agents are getting more autonomous. Trust is going the other"
+    },
+    {
+      "role": "body",
+      "fontFamily": "Geist",
+      "fontSize": "18px",
+      "fontWeight": "400",
+      "lineHeight": "29.25px",
+      "letterSpacing": "normal",
+      "color": "lab(65.6464 1.53497 -5.42429)",
+      "sampleText": "Let AI agents run the business. Keep the off switch. Leash g"
+    },
+    {
+      "role": "link",
+      "fontFamily": "Geist",
+      "fontSize": "14px",
+      "fontWeight": "600",
+      "lineHeight": "20px",
+      "letterSpacing": "normal",
+      "color": "lab(8.30603 0.618205 -2.16572)",
+      "sampleText": "Open dashboard"
+    },
+    {
+      "role": "code",
+      "fontFamily": "Geist Mono",
+      "fontSize": "14px",
+      "fontWeight": "400",
+      "lineHeight": "20px",
+      "letterSpacing": "normal",
+      "color": "lab(75.0771 -60.7313 19.4147)",
+      "sampleText": "01"
+    }
+  ],
+  "spacing": {
+    "observed": [
+      4,
+      8,
+      10,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      40,
+      48,
+      80
+    ],
+    "baseUnit": 4
+  },
+  "radius": [
+    "12px"
+  ],
+  "shadows": [
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0.4) 0px 25px 50px -12px",
+      "count": 1
+    }
+  ],
+  "buttons": [],
+  "cards": [
+    {
+      "label": "card",
+      "background": "#101013",
+      "color": "#EDEDF0",
+      "padding": "20px",
+      "borderRadius": "16px",
+      "border": "1px solid rgba(255, 255, 255, 0.07)",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0 0 0 / 0.4) 0px 25px 50px -12px",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "height": "350.5px"
+    }
+  ],
+  "nav": {
+    "label": "navigation",
+    "background": "lab(2.22664 0.207417 -0.760931 / 0.8)",
+    "color": "#EDEDF0",
+    "padding": "0px",
+    "borderRadius": "0px",
+    "border": "",
+    "boxShadow": "none",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "height": "65px"
+  }
+}

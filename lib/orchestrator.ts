@@ -80,9 +80,10 @@ async function runQualify(lead: Lead): Promise<void> {
     return;
   }
 
+  const policy = await getControl();
   const q = await qualify(lead.raw_message);
   await updateLead(lead.id, { amount: q.amount });
-  const auto = q.confidence >= CONFIDENCE_THRESHOLD && !q.ambiguous;
+  const auto = q.confidence >= policy.threshold && !q.ambiguous;
 
   if (!auto) {
     await emitEvent({
@@ -95,7 +96,7 @@ async function runQualify(lead: Lead): Promise<void> {
       status: "awaiting_approval",
       reason: q.ambiguous
         ? "Lead is ambiguous or under-specified, so it was escalated instead of guessed."
-        : `Confidence ${q.confidence.toFixed(2)} below ${CONFIDENCE_THRESHOLD} threshold.`,
+        : `Confidence ${q.confidence.toFixed(2)} below the ${policy.threshold.toFixed(2)} threshold you set.`,
     });
     await updateLead(lead.id, { stage: "escalated" });
     return;
@@ -119,8 +120,9 @@ async function runQualify(lead: Lead): Promise<void> {
 async function runInvoice(lead: Lead, amount: number): Promise<void> {
   if (await halted("invoicer", lead.id)) return;
 
-  // The "$89 auto-pay, >$250 human-in-the-loop" rule, made literal.
-  if (amount > HUMAN_REVIEW_AMOUNT) {
+  // The "auto-pay small, human-in-the-loop above the cap" rule — using the cap you set.
+  const { cap } = await getControl();
+  if (amount > cap) {
     await emitEvent({
       lead_id: lead.id,
       agent: "invoicer",
@@ -129,7 +131,7 @@ async function runInvoice(lead: Lead, amount: number): Promise<void> {
       confidence: null,
       decision: "escalate",
       status: "awaiting_approval",
-      reason: `Amount £${amount} exceeds £${HUMAN_REVIEW_AMOUNT} auto-approval limit. Human-in-the-loop required.`,
+      reason: `Amount £${amount} exceeds your £${cap} auto-approval limit. Human-in-the-loop required.`,
     });
     return;
   }

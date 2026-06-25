@@ -22,7 +22,7 @@ type Mem = { events: AgentEvent[]; leads: Lead[]; control: Control };
 const g = globalThis as unknown as { __handoff?: Mem };
 function mem(): Mem {
   if (!g.__handoff) {
-    g.__handoff = { events: [], leads: [], control: { paused: false, updated_at: new Date().toISOString() } };
+    g.__handoff = { events: [], leads: [], control: { paused: false, updated_at: new Date().toISOString(), threshold: 0.7, cap: 250, business: null } };
   }
   return g.__handoff;
 }
@@ -93,8 +93,28 @@ export async function approvalQueue(): Promise<AgentEvent[]> {
 export async function getControl(): Promise<Control> {
   if (usingSupabase) {
     const { data } = await sb().from("control").select().eq("id", 1).single();
-    return { paused: !!data?.paused, updated_at: data?.updated_at ?? new Date().toISOString() };
+    return {
+      paused: !!data?.paused,
+      updated_at: data?.updated_at ?? new Date().toISOString(),
+      threshold: data?.threshold != null ? Number(data.threshold) : 0.7,
+      cap: data?.cap != null ? Number(data.cap) : 250,
+      business: data?.business ?? null,
+    };
   }
+  return mem().control;
+}
+
+export async function setPolicy(p: { threshold?: number; cap?: number; business?: string }): Promise<Control> {
+  const updated_at = new Date().toISOString();
+  const patch: Record<string, unknown> = { updated_at };
+  if (p.threshold != null) patch.threshold = p.threshold;
+  if (p.cap != null) patch.cap = p.cap;
+  if (p.business != null) patch.business = p.business;
+  if (usingSupabase) {
+    await sb().from("control").update(patch).eq("id", 1);
+    return getControl();
+  }
+  mem().control = { ...mem().control, ...patch } as Control;
   return mem().control;
 }
 
@@ -102,9 +122,9 @@ export async function setPaused(paused: boolean): Promise<Control> {
   const updated_at = new Date().toISOString();
   if (usingSupabase) {
     await sb().from("control").update({ paused, updated_at }).eq("id", 1);
-    return { paused, updated_at };
+    return getControl();
   }
-  mem().control = { paused, updated_at };
+  mem().control = { ...mem().control, paused, updated_at };
   return mem().control;
 }
 
@@ -143,7 +163,8 @@ export async function resetAll(): Promise<void> {
     await sb().from("control").update({ paused: false, updated_at: new Date().toISOString() }).eq("id", 1);
     return;
   }
-  g.__handoff = { events: [], leads: [], control: { paused: false, updated_at: new Date().toISOString() } };
+  const keep = g.__handoff?.control ?? { threshold: 0.7, cap: 250, business: null };
+  g.__handoff = { events: [], leads: [], control: { ...keep, paused: false, updated_at: new Date().toISOString() } as Control };
 }
 
 export async function getStats(): Promise<Stats> {

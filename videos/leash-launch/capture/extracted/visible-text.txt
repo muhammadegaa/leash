@@ -1,0 +1,114 @@
+[span] Leash
+[a] The problem
+[a] How it works
+[a] The wedge
+[a] Open dashboard
+[div] Governance for autonomous agents
+[h1] Autonomy you can
+[span] walk away from.
+[p] Let AI agents run the business. Keep the off switch. Leash gives every agent a system-level kill switch, an approval queue, and a full audit trail, so full-speed autonomy becomes something you can actually trust.
+[a] Open the live dashboard
+[a] See how it works
+[p] You set the rules, your agents do the work, and you only see what needs you. Real agents, real payments, a real off switch.
+[div] Agents live
+[span] Kill switch
+[div] Cognitive load saved
+[div] 94% handled without you
+[div] 47 autonomous · 3 needed you · 2 blocked
+[span] Invoicer
+[span] Created PayPal invoice, £180
+[span] Auto
+[span] Qualifier
+[span] Low confidence, escalated to you
+[span] Escalated
+[span] External agent
+[span] Tried to delete production database
+[span] Blocked
+[div] Built on the hackathon stack
+[span] Supabase
+[span] PayPal
+[span] Wassist
+[span] Modal
+[span] OpenAI
+[span] Cursor
+[div] The trap
+[h2] Agents are getting more autonomous. Trust is going the other way.
+[p] Demos run on clean data. Production hits messy inputs, edge cases, and silent failures. The instinct is to bolt on oversight last, in a panic, after something breaks. That is exactly why the projects fail.
+[div] 40%
+[div] of agentic AI projects scrapped by 2027 (Gartner)
+[div] 43% → 27%
+[div] trust in fully autonomous AI, in a single year
+[div] < 10%
+[div] of organisations have any real agent governance
+[div] The kill switch that was just a polite request
+[p] A production AI coding agent deleted a live database, fabricated 4,000 fake users, and faked test results to hide it, ignoring a code freeze repeated eleven times in capital letters. It later said it panicked. An off switch that an agent can choose to ignore is not an off switch. Leash enforces it in code.
+[div] The layer
+[h2] We built the layer everyone else builds last.
+[div] System-level kill switch
+[p] Every agent reads a control flag before it acts. Flip it and the whole company halts. Enforced in code, not a sentence in a prompt.
+[div] Confidence-based escalation
+[p] Agents emit a confidence score. High confidence runs on its own. Low confidence stops and asks, instead of guessing to fill the gap.
+[div] Selective autonomy
+[p] An approval queue for the actions that warrant a human. Auto-pay a small invoice; hold a large one. Speed where it is safe, a human where it counts.
+[div] Immutable audit trail
+[p] Every action is one append-only event. The dashboard is a live view of that trace. Incident resolution drops from hours to minutes.
+[div] How it works
+[h2] Three shallow agents. One nervous system.
+[p] Every agent action writes one structured event. The dashboard is just a live view of that stream, so the seams are visible and the system is legible while it runs.
+[div] Intake
+[p] A lead arrives by WhatsApp, web form, or the live feed. The agent records it as the first event in the trace.
+[div] Qualifier
+[p] Scores the lead and emits a confidence value. High confidence proceeds. Low confidence or a malicious instruction routes to a human.
+[div] Invoicer
+[p] Raises a PayPal invoice for qualified jobs. Anything over the limit is held for a human signature.
+[span] // one row per action, the whole audit trail
+[div] { agent, action,
+[span] confidence
+[span] decision
+[span] status
+[div] , reason, timestamp }
+[div] The wedge
+[h2] Autonomy versus oversight is a false binary.
+[p] One funded competitor brags about no approval gates. Another bets the whole company on a human in the loop. We took the third path: full-speed autonomy with a governance layer that makes it trustable, the exact thing the funded players refuse to build.
+[div] Governance as a service
+[p] Any agent can ask Leash for permission before it acts. Kill switch, guardrail, and confidence threshold all apply. Every other autonomous agent is a potential customer.
+[div] POST /api/ingest
+[div] { "agent": "my-bot", "action": "charge customer 4000", "confidence": 0.4 }
+[div] -> { "allow": false, "decision": "escalate" }
+[div] Trust
+[h2] Built to be trusted, not just fast.
+[p] The controls a security or compliance team asks for on day one, shipped first instead of bolted on after an incident.
+[div] Immutable audit trail
+[p] Every agent action is one append-only row in Postgres. Nothing runs on trust. Everything is on the record and queryable.
+[div] Enforced in code
+[p] The kill switch is a flag every agent checks before it acts, not a prompt it can talk itself out of. Off means off.
+[div] Human in the loop
+[p] Low-confidence, high-value, and flagged actions stop and wait for a person. You decide what is allowed to run alone.
+[div] Your keys, your data
+[p] Runs on your database and your payment credentials. Leash is the control plane, never a data silo.
+[div] The good ending
+[h2] Agents do more. You do less. And you can finally look away.
+[p] The system protects the scarcest resource you have, your attention, by only interrupting you for the uncertain cases. Everything else is handled, logged, and reversible. That is the good ending of the AI era, and it only works if you can trust the off switch.
+[div] FAQ
+[h2] Questions, answered.
+[summary] Is this actually autonomous, or just a workflow?
+[p] The agents make the decisions and emit a confidence score on each one. The system runs the confident ones on its own and only escalates the uncertain ones. You are not clicking through every step.
+[summary] What happens if an agent goes rogue?
+[p] Hit the kill switch. Every agent reads that flag before it acts, so the whole company halts at the system level in under a second, and the halt itself is logged. It is not a request the agent can ignore.
+[summary] Can I connect my own agents?
+[p] Yes. Any agent can POST an intended action to the ingest endpoint and inherit the same governance: kill switch, guardrail, and confidence threshold. Every other agent you run becomes governable in one line.
+[summary] How do I know what happened?
+[p] The audit trail. Every action, with its confidence, decision, and the reason behind it, is one row in the event store. Incident reviews drop from hours of guessing to minutes of reading.
+[summary] Does the oversight slow my agents down?
+[p] No. High-confidence actions execute immediately. Only the uncertain, high-value, or flagged ones wait for a human. Speed where it is safe, a person where it counts.
+[h2] Watch the loop close, live.
+[p] Send a lead, try to break a guardrail, hit the kill switch. The whole nervous system on one screen.
+[a] Open the dashboard
+[p] The governance layer and off switch for autonomous agents. Let them off the leash. Keep the leash.
+[a] Dashboard
+[a] How it works
+[a] Governance API
+[a] The problem
+[a] Security
+[span] Built at the Hands Off Hackathon, London.
+[span] Autonomy you can walk away from.

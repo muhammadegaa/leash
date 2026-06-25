@@ -20,8 +20,15 @@ create table if not exists events (
 create table if not exists control (
   id         int primary key default 1,
   paused     boolean not null default false,
+  threshold  numeric not null default 0.7,   -- auto-run at/above this confidence
+  cap        numeric not null default 250,   -- payments above this need a human
+  business   text,                           -- what the agents govern
   updated_at timestamptz not null default now()
 );
+-- migration for existing projects:
+alter table control add column if not exists threshold numeric not null default 0.7;
+alter table control add column if not exists cap numeric not null default 250;
+alter table control add column if not exists business text;
 insert into control (id, paused) values (1, false)
   on conflict (id) do nothing;
 

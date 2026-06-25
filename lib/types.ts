@@ -41,6 +41,9 @@ export interface Lead {
 export interface Control {
   paused: boolean;
   updated_at: string;
+  threshold: number; // 0..1 — auto-run at or above this confidence
+  cap: number; // £ — payments above this need human sign-off
+  business: string | null; // what the agents are governing
 }
 
 export interface Stats {
