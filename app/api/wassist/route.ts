@@ -1,71 +1,73 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { runLead } from "@/lib/orchestrator";
+import { emitEvent } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-// Some webhook providers verify the endpoint with a GET challenge. Echo it back.
+// Some providers verify the endpoint with a GET challenge. Echo it back.
 export async function GET(req: NextRequest) {
   const c = req.nextUrl.searchParams.get("challenge") ?? req.nextUrl.searchParams.get("hub.challenge");
   if (c) return new NextResponse(c, { status: 200 });
   return NextResponse.json({ ok: true, hook: "wassist" });
 }
 
-// Wassist WhatsApp inbound webhook — the live on-stage trigger. A judge texts the
-// UK number, Wassist POSTs here, and the lead flows through all three agents.
-// Reliability first: we verify the secret where it is sent but never drop a real
-// message because of a header-name guess.
+// Wassist WhatsApp inbound webhook — the live on-stage trigger.
+// Verifies the Stripe-style HMAC-SHA256 signature over `${t}.${rawBody}`, then
+// runs the message through Intake -> Qualifier -> Invoicer.
 export async function POST(req: NextRequest) {
+  const raw = await req.text();
   const secret = process.env.WASSIST_WEBHOOK_SECRET;
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const sigHeader = req.headers.get("x-wassist-signature") ?? "";
+  const eventType = req.headers.get("x-wassist-event") ?? "";
 
-  // Verify the secret across the places a provider might put it (informational).
-  const provided =
-    req.headers.get("x-wassist-secret") ??
-    req.headers.get("x-webhook-secret") ??
-    req.headers.get("x-hook-secret") ??
-    req.headers.get("x-signature") ??
-    (req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null) ??
-    req.nextUrl.searchParams.get("secret") ??
-    (body.secret as string | undefined) ??
-    null;
-  const verified = !secret || (provided != null && provided === secret);
+  // HMAC signature verification (constant time).
+  let verified = false;
+  let stale = false;
+  if (secret && sigHeader) {
+    const parts = Object.fromEntries(sigHeader.split(",").map((p) => p.split("=")));
+    if (parts.t && parts.v1) {
+      const expected = crypto.createHmac("sha256", secret).update(`${parts.t}.${raw}`).digest("hex");
+      try {
+        verified = crypto.timingSafeEqual(Buffer.from(parts.v1, "hex"), Buffer.from(expected, "hex"));
+      } catch {
+        verified = false;
+      }
+      stale = Math.abs(Date.now() / 1000 - Number(parts.t)) > 300;
+    }
+  }
 
-  const { message, contact } = extract(body);
-  if (!message) return NextResponse.json({ ok: true, skipped: "no text message", verified });
+  const body = JSON.parse(raw || "{}") as WassistEvent;
+  const type = body.event ?? eventType ?? "unknown";
+
+  // Test event from the dashboard button — visible confirmation the hook is wired.
+  if (type === "test.ping") {
+    await emitEvent({
+      lead_id: null,
+      agent: "system",
+      action: "Wassist webhook test received",
+      input: { verified, type },
+      confidence: null,
+      decision: verified ? "approved" : null,
+      status: "done",
+      reason: verified ? "Signature verified (HMAC-SHA256)." : "Test ping received (no valid signature).",
+    });
+    return NextResponse.json({ ok: true, type, verified });
+  }
+
+  const message = String(body.message?.body ?? body.message?.text ?? body.text ?? "").trim();
+  const contact = String(body.from ?? body.contact?.phoneNumber ?? body.contact?.name ?? "whatsapp-user");
+  if (!message) return NextResponse.json({ ok: true, skipped: "no message body", type, verified });
 
   const { leadId } = await runLead({ contact, message, source: "whatsapp" });
-  return NextResponse.json({ ok: true, leadId, verified });
+  return NextResponse.json({ ok: true, leadId, verified, stale });
 }
 
-// Dig the message + sender out of the common WhatsApp / Wassist payload shapes.
-function extract(body: Record<string, unknown>): { message: string; contact: string } {
-  const g = (o: unknown, path: string): unknown =>
-    path.split(".").reduce<unknown>((acc, k) => (acc && typeof acc === "object" ? (acc as Record<string, unknown>)[k] : undefined), o);
-
-  // WhatsApp Cloud API style: entry[].changes[].value.messages[]
-  const value = g(body, "entry.0.changes.0.value") as Record<string, unknown> | undefined;
-  const waMsg = value ? (g(value, "messages.0") as Record<string, unknown> | undefined) : undefined;
-
-  const message = String(
-    (body.message as string) ??
-      (body.text as string) ??
-      (g(body, "text.body") as string) ??
-      (g(body, "message.text") as string) ??
-      (g(body, "data.message") as string) ??
-      (waMsg ? (g(waMsg, "text.body") as string) : "") ??
-      (body.content as string) ??
-      ""
-  ).trim();
-
-  const contact = String(
-    (body.from as string) ??
-      (body.sender as string) ??
-      (body.phone as string) ??
-      (body.wa_id as string) ??
-      (waMsg ? (waMsg.from as string) : "") ??
-      (g(value ?? {}, "contacts.0.wa_id") as string) ??
-      "whatsapp-user"
-  );
-
-  return { message, contact };
+interface WassistEvent {
+  event?: string;
+  from?: string;
+  text?: string;
+  contact?: { name?: string; phoneNumber?: string };
+  message?: { body?: string; text?: string };
 }
