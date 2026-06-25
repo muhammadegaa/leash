@@ -13,6 +13,15 @@ export interface InvoiceResult {
   link: string | null;
 }
 
+export interface InvoiceInput {
+  amount: number;
+  ref: string; // lead id
+  business?: string; // the agency name the user configured
+  itemLabel?: string; // named rate line, e.g. "Emergency call-out deposit"
+  request?: string; // the customer's actual inbound message
+  customer?: string; // the customer's contact (phone / name)
+}
+
 async function token(): Promise<string | null> {
   const id = process.env.PAYPAL_CLIENT_ID;
   const secret = process.env.PAYPAL_CLIENT_SECRET;
@@ -28,22 +37,40 @@ async function token(): Promise<string | null> {
   return j.access_token as string;
 }
 
-export async function createInvoice(amount: number, ref: string): Promise<InvoiceResult> {
+export async function createInvoice(input: InvoiceInput): Promise<InvoiceResult> {
+  const { amount, ref } = input;
+  const business = (input.business || "DrainFlow Plumbing").slice(0, 120);
+  const itemLabel = (input.itemLabel || "Plumbing job deposit").slice(0, 200);
+  const request = (input.request || "Inbound plumbing job").slice(0, 400);
+  const customer = (input.customer || "WhatsApp customer").slice(0, 80);
+
   const t = await token();
   if (!t) {
     return { id: `MOCK-${ref.slice(0, 8)}`, status: "CREATED (mock)", amount, mock: true, link: null };
   }
 
-  // 1. Create a draft invoice (this is what appears in the Invoicing tab).
+  // 1. Create a draft invoice, built from the actual lead (this shows in the Invoicing tab).
   const create = await fetch(`${BASE}/v2/invoicing/invoices`, {
     method: "POST",
     headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      detail: { currency_code: "GBP", note: "DrainFlow emergency plumbing deposit", reference: ref },
-      invoicer: { name: { business_name: "DrainFlow Plumbing" } },
-      primary_recipients: [{ billing_info: { email_address: RECIPIENT } }],
+      detail: {
+        currency_code: "GBP",
+        reference: ref,
+        note: `${business} — ${itemLabel}. Job: "${request}". Customer: ${customer}.`,
+        memo: `Lead ${ref}`,
+      },
+      invoicer: { name: { business_name: business } },
+      primary_recipients: [
+        { billing_info: { email_address: RECIPIENT, business_name: customer, additional_info_value: `Lead via WhatsApp` } },
+      ],
       items: [
-        { name: "Plumbing job deposit", quantity: "1", unit_amount: { currency_code: "GBP", value: amount.toFixed(2) } },
+        {
+          name: itemLabel,
+          description: request,
+          quantity: "1",
+          unit_amount: { currency_code: "GBP", value: amount.toFixed(2) },
+        },
       ],
     }),
   });
@@ -66,5 +93,8 @@ export async function createInvoice(amount: number, ref: string): Promise<Invoic
     // keep as draft; it still exists in the Invoicing tab and is fetchable by id.
   }
 
-  return { id, status, amount, mock: false, link: `${BASE}/v2/invoicing/invoices/${id}` };
+  // The real, human-viewable, payable invoice page (what the customer would open).
+  const viewId = id.replace(/-/g, "").replace(/^INV2/, "");
+  const link = `https://www.sandbox.paypal.com/invoice/p/#${viewId}`;
+  return { id, status, amount, mock: false, link };
 }

@@ -145,7 +145,7 @@ export default function Dashboard() {
   const handled = stats?.handled_autonomously ?? 0;
   const needed = stats?.needed_human ?? 0;
   const denom = handled + needed;
-  const pct = denom === 0 ? 100 : Math.round((handled / denom) * 100);
+  const pct = denom === 0 ? 0 : Math.round((handled / denom) * 100);
 
   if (authEnabled && session === undefined) return <AuthScreen mode="loading" />;
   if (authEnabled && !session) return <AuthScreen mode="login" />;
@@ -497,6 +497,14 @@ function ThreadCard({ events }: { events: AgentEvent[] }) {
                 </div>
                 <div className="text-sm text-zinc-200 mt-0.5">{e.action}</div>
                 {e.reason && <div className="text-[12px] text-zinc-500 mt-1 leading-relaxed">{e.reason}</div>}
+                {(() => {
+                  const link = (e.input as { link?: string } | null)?.link;
+                  return link ? (
+                    <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-emerald-400 hover:text-emerald-300 mt-1.5 transition">
+                      View invoice ↗
+                    </a>
+                  ) : null;
+                })()}
               </div>
             </li>
           );
@@ -532,6 +540,7 @@ function AlertCard({ e }: { e: AgentEvent }) {
 
 function QueueCard({ e, onApprove, onReject }: { e: AgentEvent; onApprove: () => void; onReject: () => void }) {
   const threat = e.decision === "blocked";
+  const inp = (e.input ?? {}) as { contact?: string; message?: string; source?: string; amount?: number };
   return (
     <article className={`animate-enter rounded-2xl border overflow-hidden ${threat ? "border-red-500/40" : "border-amber-500/30"}`}>
       <div className={`px-4 py-3 ${threat ? "bg-red-500/[0.06]" : "bg-amber-500/[0.05]"}`}>
@@ -544,7 +553,22 @@ function QueueCard({ e, onApprove, onReject }: { e: AgentEvent; onApprove: () =>
           </span>
         </div>
         <p className="text-sm text-zinc-100 mt-2">{e.action}</p>
-        {e.reason && <p className="text-[12px] text-zinc-400 mt-1.5 leading-relaxed">{e.reason}</p>}
+        {(inp.message || inp.contact) && (
+          <div className="mt-2.5 rounded-lg border border-[var(--border)] bg-black/20 p-2.5">
+            <div className="flex items-center gap-2">
+              <SourceBadge source={inp.source} />
+              <span className="text-[11px] text-zinc-500 font-mono truncate">{inp.contact ?? "lead"}</span>
+            </div>
+            {inp.message && <p className="text-[13px] text-zinc-200 mt-1.5 leading-snug">“{inp.message}”</p>}
+            <div className="flex items-center gap-3 mt-2">
+              {inp.amount != null && (
+                <span className="text-[12px] text-zinc-400">Amount <span className="font-semibold text-zinc-200 tabular-nums">£{inp.amount}</span></span>
+              )}
+              {e.confidence != null && <Conf c={e.confidence} />}
+            </div>
+          </div>
+        )}
+        {e.reason && <p className="text-[12px] text-zinc-400 mt-2 leading-relaxed">{e.reason}</p>}
       </div>
       <div className="flex gap-px bg-[var(--border)]">
         <button onClick={onApprove} className="flex-1 bg-[var(--panel)] hover:bg-emerald-600/20 text-emerald-300 text-sm font-semibold py-2.5 transition">

@@ -169,7 +169,11 @@ export async function resetAll(): Promise<void> {
 
 export async function getStats(): Promise<Stats> {
   const events = await listEvents(1000);
-  const handled_autonomously = events.filter((e) => e.decision === "auto_proceed").length;
+  // Only count real autonomous DECISIONS (qualify/invoice), not the intake receipt
+  // or system notes — otherwise the counter credits itself for work it didn't judge.
+  const handled_autonomously = events.filter(
+    (e) => e.decision === "auto_proceed" && (e.agent === "qualifier" || e.agent === "invoicer")
+  ).length;
   const blocked = events.filter((e) => e.decision === "blocked").length;
   const needed_human = events.filter(
     (e) => e.decision === "escalate" || e.status === "awaiting_approval"

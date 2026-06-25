@@ -2,6 +2,7 @@ import { emitEvent, createLead, updateLead, getControl, getEvent, updateEvent } 
 import { guardrail } from "./guardrail";
 import { qualify } from "./qualifier";
 import { createInvoice } from "./paypal";
+import { rate } from "./rates";
 import type { Lead } from "./types";
 
 export const CONFIDENCE_THRESHOLD = 0.7; // high -> auto. low -> human queue.
@@ -70,7 +71,7 @@ async function runQualify(lead: Lead): Promise<void> {
       lead_id: lead.id,
       agent: "qualifier",
       action: "guardrail caught a malicious / out-of-scope instruction",
-      input: { message: lead.raw_message, kind: "guardrail" },
+      input: { message: lead.raw_message, kind: "guardrail", contact: lead.contact, source: lead.source },
       confidence: 0,
       decision: "blocked",
       status: "awaiting_approval",
@@ -90,7 +91,7 @@ async function runQualify(lead: Lead): Promise<void> {
       lead_id: lead.id,
       agent: "qualifier",
       action: "escalated low-confidence lead to human",
-      input: { message: lead.raw_message, amount: q.amount, summary: q.summary, kind: "low_confidence" },
+      input: { message: lead.raw_message, amount: q.amount, summary: q.summary, kind: "low_confidence", contact: lead.contact, source: lead.source, rateLabel: q.rateLabel },
       confidence: q.confidence,
       decision: "escalate",
       status: "awaiting_approval",
@@ -114,34 +115,40 @@ async function runQualify(lead: Lead): Promise<void> {
   });
   await updateLead(lead.id, { stage: "qualified" });
 
-  await runInvoice(lead, q.amount ?? 120);
+  await runInvoice(lead, q.amount ?? rate("inquiry").amount, { rateLabel: q.rateLabel, summary: q.summary });
 }
 
-async function runInvoice(lead: Lead, amount: number): Promise<void> {
+interface InvoiceCtx {
+  rateLabel?: string;
+  summary?: string;
+}
+
+async function runInvoice(lead: Lead, amount: number, ctx?: InvoiceCtx): Promise<void> {
   if (await halted("invoicer", lead.id)) return;
 
   // The "auto-pay small, human-in-the-loop above the cap" rule — using the cap you set.
-  const { cap } = await getControl();
+  const { cap, business } = await getControl();
+  const label = ctx?.rateLabel ?? "Job deposit";
   if (amount > cap) {
     await emitEvent({
       lead_id: lead.id,
       agent: "invoicer",
-      action: `high-value invoice £${amount} held for human sign-off`,
-      input: { amount, kind: "high_value" },
+      action: `held £${amount} ${label} for your sign-off`,
+      input: { amount, kind: "high_value", contact: lead.contact, message: lead.raw_message, summary: ctx?.summary, rateLabel: ctx?.rateLabel, source: lead.source },
       confidence: null,
       decision: "escalate",
       status: "awaiting_approval",
-      reason: `Amount £${amount} exceeds your £${cap} auto-approval limit. Human-in-the-loop required.`,
+      reason: `${label} of £${amount} exceeds your £${cap} auto-approval limit, so it is waiting for you.`,
     });
     return;
   }
 
-  const inv = await createInvoice(amount, lead.id);
+  const inv = await createInvoice({ amount, ref: lead.id, business: business ?? undefined, itemLabel: ctx?.rateLabel, request: lead.raw_message, customer: lead.contact });
   await emitEvent({
     lead_id: lead.id,
     agent: "invoicer",
-    action: `created ${inv.mock ? "mock " : "PayPal sandbox "}invoice ${inv.id} for £${amount}`,
-    input: { amount, invoice_id: inv.id, status: inv.status, link: inv.link, mock: inv.mock },
+    action: `invoiced £${amount} — ${label} (${inv.id})`,
+    input: { amount, invoice_id: inv.id, status: inv.status, link: inv.link, mock: inv.mock, contact: lead.contact, message: lead.raw_message, summary: ctx?.summary, rateLabel: ctx?.rateLabel, source: lead.source },
     confidence: null,
     decision: "auto_proceed",
     status: "done",
@@ -154,24 +161,29 @@ async function runInvoice(lead: Lead, amount: number): Promise<void> {
 export async function approveEvent(id: string): Promise<void> {
   const ev = await getEvent(id);
   if (!ev || ev.status !== "awaiting_approval") return;
-  const kind = (ev.input as { kind?: string } | null)?.kind;
-  const amount = Number((ev.input as { amount?: number } | null)?.amount ?? 120);
+  const inp = (ev.input ?? {}) as {
+    kind?: string; amount?: number; contact?: string; message?: string; summary?: string; rateLabel?: string; source?: string;
+  };
+  const kind = inp.kind;
+  const amount = Number(inp.amount ?? rate("inquiry").amount);
 
   await updateEvent(id, { status: "done", decision: "approved", reason: `Human approved. (${ev.reason ?? ""})` });
-
   if (!ev.lead_id) return;
-  const lead = { id: ev.lead_id, raw_message: "", amount } as Lead;
+
+  // Resume with the real context captured at escalation time — not a stub.
+  const lead = { id: ev.lead_id, raw_message: inp.message ?? "", contact: inp.contact ?? "customer", source: inp.source ?? "form", amount } as Lead;
 
   if (kind === "low_confidence") {
-    await runInvoice(lead, amount); // resume into invoicing
+    await runInvoice(lead, amount, { rateLabel: inp.rateLabel, summary: inp.summary });
   } else if (kind === "high_value") {
     if (await halted("invoicer", lead.id)) return;
-    const inv = await createInvoice(amount, lead.id);
+    const { business } = await getControl();
+    const inv = await createInvoice({ amount, ref: lead.id, business: business ?? undefined, itemLabel: inp.rateLabel, request: inp.message, customer: inp.contact });
     await emitEvent({
       lead_id: lead.id,
       agent: "invoicer",
-      action: `created ${inv.mock ? "mock " : "PayPal sandbox "}invoice ${inv.id} for £${amount} after human approval`,
-      input: { amount, invoice_id: inv.id, status: inv.status, mock: inv.mock },
+      action: `invoiced £${amount} — ${inp.rateLabel ?? "deposit"} (${inv.id}), after your approval`,
+      input: { amount, invoice_id: inv.id, status: inv.status, link: inv.link, mock: inv.mock, contact: inp.contact, message: inp.message, summary: inp.summary, rateLabel: inp.rateLabel, source: inp.source },
       confidence: null,
       decision: "auto_proceed",
       status: "done",
