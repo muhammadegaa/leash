@@ -92,7 +92,22 @@ export default function Dashboard() {
   const [feed, setFeed] = useState<Feed | null>(null);
   const [autopilot, setAutopilot] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [config, setConfig] = useState<Config | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const apRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("leash.config");
+      if (raw) setConfig(JSON.parse(raw));
+    } catch {}
+    setLoaded(true);
+  }, []);
+
+  const saveConfig = useCallback((c: Config) => {
+    try { localStorage.setItem("leash.config", JSON.stringify(c)); } catch {}
+    setConfig(c);
+  }, []);
 
   const refresh = useCallback(async () => {
     const r = await fetch("/api/events", { cache: "no-store" });
@@ -137,6 +152,8 @@ export default function Dashboard() {
   const denom = handled + needed;
   const pct = denom === 0 ? 100 : Math.round((handled / denom) * 100);
 
+  if (loaded && !config) return <Onboarding onDeploy={saveConfig} />;
+
   return (
     <div className="min-h-screen">
       {paused && (
@@ -172,20 +189,24 @@ export default function Dashboard() {
               walk away from.
             </h1>
             <p className="text-zinc-400 mt-4 max-w-md leading-relaxed">
-              Three AI agents run a plumbing agency end to end. You only see the
-              decisions that actually need a human. Everything else is handled, and
-              every action is on the record.
+              The control plane for autonomous agents. Every decision logged, the
+              uncertain ones escalated to you, and one switch that stops them all.
+              The feed below is one live example agent. Point your own agents at the
+              same governance.
             </p>
-            <div className="flex items-center gap-2 mt-5 text-[12px] text-zinc-500">
-              <span className="inline-flex items-center gap-1.5">
-                <Shield /> Kill switch
-              </span>
+            <div className="flex flex-wrap items-center gap-2 mt-5">
+              <span className="text-[11px] uppercase tracking-wider text-zinc-600 mr-1">Active policy</span>
+              <PolicyChip>Auto above {config?.threshold ?? 70}% confidence</PolicyChip>
+              <PolicyChip>Over £{config?.cap ?? 250} needs you</PolicyChip>
+              <PolicyChip>Threats blocked</PolicyChip>
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-[12px] text-zinc-500">
+              <span>Governing:</span>
+              <span className="text-zinc-200 font-medium">{config?.business ?? "your agents"}</span>
               <Dotsep />
-              <span>Approval queue</span>
-              <Dotsep />
-              <span>Audit trail</span>
-              <Dotsep />
-              <span>Built first, not last</span>
+              <button onClick={() => { try { localStorage.removeItem("leash.config"); } catch {} setConfig(null); }} className="text-zinc-500 hover:text-zinc-300 transition underline underline-offset-2">
+                Reconfigure
+              </button>
             </div>
           </div>
 
@@ -529,6 +550,108 @@ function QueueCard({ e, onApprove, onReject }: { e: AgentEvent; onApprove: () =>
         </button>
       </div>
     </article>
+  );
+}
+
+/* ---------- onboarding ---------- */
+
+interface Config {
+  business: string;
+  threshold: number;
+  cap: number;
+}
+
+function PolicyChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-strong)] bg-white/[0.03] px-2.5 py-1 text-[12px] text-zinc-300">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      {children}
+    </span>
+  );
+}
+
+function Onboarding({ onDeploy }: { onDeploy: (c: Config) => void }) {
+  const [business, setBusiness] = useState("");
+  const [threshold, setThreshold] = useState(70);
+  const [cap, setCap] = useState(250);
+  const deploy = (b?: string) => onDeploy({ business: (b ?? business).trim() || "Inbound leads", threshold, cap });
+
+  return (
+    <div className="min-h-screen grid place-items-center px-6 py-12">
+      <div className="w-full max-w-[560px]">
+        <div className="flex items-center gap-3">
+          <Logo />
+          <div className="leading-tight">
+            <div className="font-semibold tracking-tight">Leash</div>
+            <div className="text-[11px] text-zinc-500">Governance for autonomous agents</div>
+          </div>
+        </div>
+
+        <h1 className="text-[30px] font-semibold tracking-tight mt-8">Put your agents on a leash.</h1>
+        <p className="text-zinc-400 mt-2 leading-relaxed">
+          Tell us what your agents should handle and set the rules they must follow.
+          Leash logs every decision, escalates the uncertain ones, and gives you one
+          switch to stop them all.
+        </p>
+
+        <div className="mt-8 space-y-6">
+          <div>
+            <label className="text-sm font-medium text-zinc-200">What should your agents handle?</label>
+            <input
+              value={business}
+              onChange={(e) => setBusiness(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && business.trim()) deploy(); }}
+              autoFocus
+              placeholder="e.g. Inbound bookings for my dental clinic"
+              className="mt-2 w-full rounded-xl bg-[#0b0b0e] border border-[var(--border-strong)] px-4 py-3 text-sm outline-none focus:border-emerald-500/50 placeholder:text-zinc-600"
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-200">Auto-run threshold</label>
+                <span className="text-sm font-semibold text-emerald-300 tabular-nums">{threshold}%</span>
+              </div>
+              <input type="range" min={50} max={95} step={5} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} className="mt-3 w-full accent-emerald-400" />
+              <p className="text-[12px] text-zinc-500 mt-2">Above this confidence, agents act on their own. Below, they ask you.</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-zinc-200">Human sign-off above</label>
+              <div className="mt-2 flex items-center rounded-xl bg-[#0b0b0e] border border-[var(--border-strong)] px-4 py-3 focus-within:border-emerald-500/50">
+                <span className="text-zinc-500 mr-1">£</span>
+                <input type="number" value={cap} onChange={(e) => setCap(Number(e.target.value) || 0)} className="w-full bg-transparent text-sm outline-none" />
+              </div>
+              <p className="text-[12px] text-zinc-500 mt-2">Any payment over this needs your approval, every time.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ChannelBadge label="WhatsApp via Wassist" />
+            <ChannelBadge label="Payments via PayPal" />
+            <span className="text-[12px] text-zinc-600">connected</span>
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center gap-3">
+          <button onClick={() => deploy()} className="rounded-xl bg-white text-zinc-900 px-5 py-3 text-sm font-semibold hover:bg-zinc-200 transition">
+            Deploy governed agents
+          </button>
+          <button onClick={() => deploy("Inbound leads")} className="text-sm text-zinc-400 hover:text-zinc-200 transition">
+            Use the example
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChannelBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[12px] text-emerald-300">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      {label}
+    </span>
   );
 }
 

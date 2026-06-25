@@ -89,8 +89,8 @@ function Hero() {
           </a>
         </div>
         <p className="text-[13px] text-zinc-600 mt-5">
-          A real agency runs underneath: inbound leads, qualified by confidence,
-          invoiced on PayPal. You only see what needs you.
+          You set the rules, your agents do the work, and you only see what needs you.
+          Real agents, real payments, a real off switch.
         </p>
       </div>
 
