@@ -56,9 +56,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, type, verified });
   }
 
-  const message = String(body.message?.body ?? body.message?.text ?? body.text ?? "").trim();
-  const contact = String(body.from ?? body.contact?.phoneNumber ?? body.contact?.name ?? "whatsapp-user");
-  if (!message) return NextResponse.json({ ok: true, skipped: "no message body", type, verified });
+  // Dig the text + sender out of every shape Wassist might send (message.received,
+  // subscription.message.received, nested data/entry wrappers).
+  const b = body as Record<string, unknown>;
+  const dig = (path: string): string => {
+    const v = path.split(".").reduce<unknown>((a, k) => (a && typeof a === "object" ? (a as Record<string, unknown>)[k] : undefined), b);
+    return typeof v === "string" ? v : "";
+  };
+  const message = (
+    dig("message.body") || dig("message.text") || dig("text") ||
+    dig("data.message.body") || dig("subscription.message.body") ||
+    dig("entry.0.changes.0.value.messages.0.text.body")
+  ).trim();
+  const contact = (
+    dig("from") || dig("contact.phoneNumber") || dig("data.from") ||
+    dig("subscription.contact.phoneNumber") || dig("contact.name") || "whatsapp-user"
+  );
+
+  if (!message) {
+    // Webhook fired but we couldn't find the text — capture the raw payload so it's
+    // debuggable instead of silently dropped.
+    await emitEvent({
+      lead_id: null, agent: "system", action: `Wassist inbound received (${type}) — no parseable message`,
+      input: { type, verified, raw: raw.slice(0, 800) }, confidence: null, decision: null, status: "done",
+      reason: "Webhook fired but the message text wasn't in an expected field. Raw payload captured.",
+    });
+    return NextResponse.json({ ok: true, skipped: "no message body", type, verified });
+  }
 
   const { leadId } = await runLead({ contact, message, source: "whatsapp" });
   return NextResponse.json({ ok: true, leadId, verified, stale });
