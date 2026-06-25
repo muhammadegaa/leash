@@ -24,7 +24,7 @@ app = modal.App("handoff-unattended")
 
 image = modal.Image.debian_slim().pip_install([])
 
-HANDOFF_URL = os.environ.get("HANDOFF_URL", "https://handoff.vercel.app")
+HANDOFF_URL = os.environ.get("HANDOFF_URL", "https://tryleash.vercel.app")
 
 
 def _post(path: str, body: dict) -> dict:
