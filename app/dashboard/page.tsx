@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabaseBrowser, authEnabled } from "@/lib/supabase-browser";
 import type { AgentEvent, Control, Stats } from "@/lib/types";
 
 interface Feed {
@@ -93,6 +95,14 @@ export default function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [config, setConfig] = useState<Config | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [session, setSession] = useState<Session | null | undefined>(authEnabled ? undefined : null);
+
+  useEffect(() => {
+    if (!authEnabled || !supabaseBrowser) return;
+    supabaseBrowser.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabaseBrowser.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     try {
@@ -137,6 +147,9 @@ export default function Dashboard() {
   const denom = handled + needed;
   const pct = denom === 0 ? 100 : Math.round((handled / denom) * 100);
 
+  if (authEnabled && session === undefined) return <AuthScreen mode="loading" />;
+  if (authEnabled && !session) return <AuthScreen mode="login" />;
+
   if (loaded && !config) return <Onboarding onDeploy={saveConfig} />;
 
   return (
@@ -158,6 +171,11 @@ export default function Dashboard() {
             </div>
           </Link>
           <div className="flex items-center gap-3">
+            {authEnabled && session && (
+              <button onClick={() => supabaseBrowser?.auth.signOut()} className="text-[12px] text-zinc-500 hover:text-zinc-300 transition">
+                Sign out
+              </button>
+            )}
             <StatusPill paused={paused} />
             <KillSwitch paused={paused} onToggle={() => post("/api/control", { paused: !paused })} />
           </div>
@@ -431,16 +449,29 @@ function Tag({ d }: { d: string }) {
   return <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${m.cls}`}>{m.label}</span>;
 }
 
+function SourceBadge({ source }: { source?: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    whatsapp: { label: "WhatsApp", cls: "text-emerald-300 bg-emerald-500/10 border-emerald-500/25" },
+    form: { label: "Manual", cls: "text-zinc-400 bg-white/[0.04] border-[var(--border-strong)]" },
+    external: { label: "External agent", cls: "text-amber-300 bg-amber-500/10 border-amber-500/25" },
+  };
+  const m = map[source ?? ""] ?? { label: source ?? "Lead", cls: "text-zinc-400 bg-white/[0.04] border-[var(--border-strong)]" };
+  return <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${m.cls}`}>{m.label}</span>;
+}
+
 function ThreadCard({ events }: { events: AgentEvent[] }) {
   const first = events[0];
-  const input = (first.input ?? {}) as { contact?: string; message?: string };
+  const input = (first.input ?? {}) as { contact?: string; message?: string; source?: string };
   const st = threadStatus(events);
   const latest = events[events.length - 1];
   return (
     <article className="animate-enter rounded-2xl border border-[var(--border)] bg-[var(--panel)] overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3 border-b border-[var(--border)]">
         <div className="min-w-0">
-          <div className="text-[12px] text-zinc-500 font-mono">{input.contact ?? "lead"}</div>
+          <div className="flex items-center gap-2">
+            <SourceBadge source={input.source} />
+            <span className="text-[12px] text-zinc-500 font-mono truncate">{input.contact ?? "lead"}</span>
+          </div>
           <div className="text-sm text-zinc-200 truncate mt-0.5">{input.message ?? "Inbound lead"}</div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -524,6 +555,62 @@ function QueueCard({ e, onApprove, onReject }: { e: AgentEvent; onApprove: () =>
         </button>
       </div>
     </article>
+  );
+}
+
+/* ---------- auth ---------- */
+
+function AuthScreen({ mode }: { mode: "loading" | "login" }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const signIn = async () => {
+    if (!supabaseBrowser) return;
+    setBusy(true);
+    setErr(null);
+    const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
+    if (error) setErr(error.message);
+    setBusy(false);
+  };
+
+  if (mode === "loading") {
+    return <div className="min-h-screen grid place-items-center"><Logo /></div>;
+  }
+
+  return (
+    <div className="min-h-screen grid place-items-center px-6">
+      <div className="w-full max-w-[380px]">
+        <div className="flex items-center gap-3">
+          <Logo />
+          <span className="font-semibold tracking-tight">Leash</span>
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight mt-7">Sign in</h1>
+        <p className="text-zinc-500 text-sm mt-1">Access your governance console.</p>
+        <div className="mt-6 space-y-3">
+          <input
+            value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoFocus
+            placeholder="you@company.com"
+            className="w-full rounded-xl bg-[#0b0b0e] border border-[var(--border-strong)] px-4 py-3 text-sm outline-none focus:border-emerald-500/50 placeholder:text-zinc-600"
+          />
+          <input
+            value={password} onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") signIn(); }} type="password"
+            placeholder="Password"
+            className="w-full rounded-xl bg-[#0b0b0e] border border-[var(--border-strong)] px-4 py-3 text-sm outline-none focus:border-emerald-500/50 placeholder:text-zinc-600"
+          />
+          {err && <p className="text-[12px] text-red-400">{err}</p>}
+          <button
+            disabled={busy} onClick={signIn}
+            className="w-full rounded-xl bg-white text-zinc-900 px-5 py-3 text-sm font-semibold disabled:opacity-40 hover:bg-zinc-200 transition"
+          >
+            {busy ? "Signing in…" : "Sign in"}
+          </button>
+        </div>
+        <Link href="/" className="inline-block text-[12px] text-zinc-600 hover:text-zinc-400 mt-5 transition">← Back to site</Link>
+      </div>
+    </div>
   );
 }
 

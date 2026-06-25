@@ -49,7 +49,7 @@ export async function runLead(input: IntakeInput): Promise<{ leadId: string | nu
     lead_id: lead.id,
     agent: "intake",
     action: `received lead via ${input.source}`,
-    input: { contact: input.contact, message: input.message },
+    input: { contact: input.contact, message: input.message, source: input.source },
     confidence: null,
     decision: "auto_proceed",
     status: "done",
