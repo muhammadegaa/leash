@@ -135,6 +135,17 @@ export async function updateLead(id: string, patch: Partial<Lead>): Promise<void
 
 // --- Stats (cognitive load saved) -----------------------------------------
 
+export async function resetAll(): Promise<void> {
+  if (usingSupabase) {
+    const never = "00000000-0000-0000-0000-000000000000";
+    await sb().from("events").delete().neq("id", never);
+    await sb().from("leads").delete().neq("id", never);
+    await sb().from("control").update({ paused: false, updated_at: new Date().toISOString() }).eq("id", 1);
+    return;
+  }
+  g.__handoff = { events: [], leads: [], control: { paused: false, updated_at: new Date().toISOString() } };
+}
+
 export async function getStats(): Promise<Stats> {
   const events = await listEvents(1000);
   const handled_autonomously = events.filter((e) => e.decision === "auto_proceed").length;
