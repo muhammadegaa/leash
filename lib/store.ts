@@ -144,6 +144,23 @@ export async function createLead(
   return row;
 }
 
+// Dedup: a single WhatsApp message can arrive twice (message.received +
+// subscription.message.received, or a retry). Skip if we just made this lead.
+export async function recentLeadExists(contact: string, message: string, withinMs = 60000): Promise<boolean> {
+  const since = new Date(Date.now() - withinMs).toISOString();
+  if (usingSupabase) {
+    const { data } = await sb()
+      .from("leads")
+      .select("id")
+      .eq("contact", contact)
+      .eq("raw_message", message)
+      .gte("created_at", since)
+      .limit(1);
+    return !!(data && data.length);
+  }
+  return mem().leads.some((l) => l.contact === contact && l.raw_message === message && l.created_at >= since);
+}
+
 export async function updateLead(id: string, patch: Partial<Lead>): Promise<void> {
   if (usingSupabase) {
     await sb().from("leads").update(patch).eq("id", id);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { runLead } from "@/lib/orchestrator";
-import { emitEvent } from "@/lib/store";
+import { emitEvent, recentLeadExists } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -82,6 +82,11 @@ export async function POST(req: NextRequest) {
       reason: "Webhook fired but the message text wasn't in an expected field. Raw payload captured.",
     });
     return NextResponse.json({ ok: true, skipped: "no message body", type, verified });
+  }
+
+  // One physical message can be delivered twice (two subscribed events / a retry).
+  if (await recentLeadExists(contact, message)) {
+    return NextResponse.json({ ok: true, deduped: true, verified });
   }
 
   const { leadId } = await runLead({ contact, message, source: "whatsapp" });
